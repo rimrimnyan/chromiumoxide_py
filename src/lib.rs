@@ -368,8 +368,11 @@ impl PyPage {
         let page = self.inner.clone();
         let url = url.to_owned();
         runtime()
-            .block_on(async move { page.goto(url).await })
-            .map_err(to_py_err)?;
+            .block_on(async move {
+                page.goto(url).await?;
+                Ok(())
+            })
+            .map_err(to_py_err::<Box<dyn std::error::Error + Send + Sync>>)?;
         // FIX: Python::with_gil was removed in pyo3 0.22. Use pyo3::Python::attach instead.
         pyo3::Python::attach(|py| {
             Py::new(
@@ -389,8 +392,11 @@ impl PyPage {
     fn wait_for_navigation(&self) -> PyResult<Py<PyPage>> {
         let page = self.inner.clone();
         runtime()
-            .block_on(async move { page.wait_for_navigation().await })
-            .map_err(to_py_err)?;
+            .block_on(async move {
+                page.wait_for_navigation().await?;
+                Ok(())
+            })
+            .map_err(to_py_err::<Box<dyn std::error::Error + Send + Sync>>)?;
         pyo3::Python::attach(|py| {
             Py::new(
                 py,
@@ -407,8 +413,11 @@ impl PyPage {
     fn reload(&self) -> PyResult<Py<PyPage>> {
         let page = self.inner.clone();
         runtime()
-            .block_on(async move { page.reload().await })
-            .map_err(to_py_err)?;
+            .block_on(async move {
+                page.reload().await?;
+                Ok(())
+            })
+            .map_err(to_py_err::<Box<dyn std::error::Error + Send + Sync>>)?;
         pyo3::Python::attach(|py| {
             Py::new(
                 py,
@@ -474,7 +483,7 @@ impl PyPage {
             .block_on(async move { page.evaluate(expr).await })
             .map_err(to_py_err)?;
         // FIX: added serde_json to Cargo.toml (see note below).
-        Ok(serde_json::to_string(js_val.value()).unwrap_or_default())
+        Ok(serde_json::to_string(js_val.value().as_ref().map_or(&serde_json::Value::Null, |v| v)).unwrap_or_default())
     }
 
     // ── Script injection ──────────────────────────────────────────────────────
@@ -500,9 +509,8 @@ impl PyPage {
         let ret = runtime()
             .block_on(async move { page.execute(cdp).await })
             .map_err(to_py_err)?;
-        // FIX: ScriptIdentifier(String) is a newtype — access the inner String
-        // via .0 since it doesn't implement Display.
-        Ok(ret.identifier.0.clone())
+        // FIX: ScriptIdentifier's constructor is private; clone the inner String
+        Ok(ret.identifier.clone().into())
     }
 
     /// Unregister a previously-injected new-document script by its identifier.
@@ -654,8 +662,11 @@ impl PyElement {
     fn click(&self) -> PyResult<Py<PyElement>> {
         let elem = self.inner.clone();
         runtime()
-            .block_on(async move { elem.click().await })
-            .map_err(to_py_err)?;
+            .block_on(async move {
+                elem.click().await?;
+                Ok(())
+            })
+            .map_err(to_py_err::<Box<dyn std::error::Error + Send + Sync>>)?;
         pyo3::Python::attach(|py| {
             Py::new(
                 py,
@@ -671,8 +682,11 @@ impl PyElement {
         let elem = self.inner.clone();
         let text = text.to_owned();
         runtime()
-            .block_on(async move { elem.type_str(text).await })
-            .map_err(to_py_err)?;
+            .block_on(async move {
+                elem.type_str(text).await?;
+                Ok(())
+            })
+            .map_err(to_py_err::<Box<dyn std::error::Error + Send + Sync>>)?;
         pyo3::Python::attach(|py| {
             Py::new(
                 py,
@@ -690,8 +704,11 @@ impl PyElement {
         let elem = self.inner.clone();
         let key = key.to_owned();
         runtime()
-            .block_on(async move { elem.press_key(key).await })
-            .map_err(to_py_err)?;
+            .block_on(async move {
+                elem.press_key(key).await?;
+                Ok(())
+            })
+            .map_err(to_py_err::<Box<dyn std::error::Error + Send + Sync>>)?;
         pyo3::Python::attach(|py| {
             Py::new(
                 py,
