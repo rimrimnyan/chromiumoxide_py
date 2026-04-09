@@ -18,6 +18,7 @@ use futures::StreamExt;
 use once_cell::sync::OnceCell;
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
+use pyo3_stub_gen::{define_stub_info_gatherer, derive::*};
 use tokio::runtime::Runtime;
 
 // ─── Shared Tokio runtime ────────────────────────────────────────────────────
@@ -46,6 +47,7 @@ fn to_py_err<E: std::fmt::Display>(e: E) -> PyErr {
 ///     builder.chrome_executable("/usr/bin/chromium")
 ///     builder.no_sandbox()
 ///     cfg = builder.build()
+#[gen_stub_pyclass]
 #[pyclass(name = "BrowserConfigBuilder")]
 pub struct PyBrowserConfigBuilder {
     executable: Option<String>,
@@ -57,6 +59,7 @@ pub struct PyBrowserConfigBuilder {
     user_data_dir: Option<String>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl PyBrowserConfigBuilder {
     #[new]
@@ -148,12 +151,14 @@ impl PyBrowserConfigBuilder {
 ///
 /// Each `BrowserConfig` may only be used **once** – it is consumed by
 /// ``Browser.launch``.
+#[gen_stub_pyclass]
 #[pyclass(name = "BrowserConfig")]
 pub struct PyBrowserConfig {
     /// Stored as `Option` so `Browser::launch` can take ownership.
     inner: Option<chromiumoxide::browser::BrowserConfig>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl PyBrowserConfig {
     /// Convenience shorthand: ``BrowserConfig.builder()`` returns a
@@ -175,6 +180,7 @@ impl PyBrowserConfig {
 ///     page = b.new_page("https://example.com")
 ///     print(page.wait_for_navigation().content())
 ///     b.close()
+#[gen_stub_pyclass]
 #[pyclass(name = "Browser")]
 pub struct PyBrowser {
     inner: Arc<tokio::sync::Mutex<chromiumoxide::Browser>>,
@@ -183,6 +189,7 @@ pub struct PyBrowser {
     _handler: Arc<tokio::task::JoinHandle<()>>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl PyBrowser {
     /// Launch a new browser process.
@@ -277,6 +284,7 @@ impl PyBrowser {
 ///     identifier = page.add_script_to_evaluate_on_new_document(params)
 // FIX: added `from_py_object` to silence the deprecation warning about the
 // automatic `FromPyObject` impl for `Clone`-able `#[pyclass]` types in pyo3 ≥ 0.22.
+#[gen_stub_pyclass]
 #[pyclass(name = "AddScriptToEvaluateOnNewDocumentParams", from_py_object)]
 #[derive(Clone)]
 pub struct PyAddScriptParams {
@@ -286,6 +294,7 @@ pub struct PyAddScriptParams {
     run_immediately: Option<bool>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl PyAddScriptParams {
     #[new]
@@ -352,11 +361,13 @@ impl PyAddScriptParams {
 /// calls can be chained::
 ///
 ///     html = page.wait_for_navigation().content()
+#[gen_stub_pyclass]
 #[pyclass(name = "Page")]
 pub struct PyPage {
     inner: Arc<chromiumoxide::Page>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl PyPage {
     // ── Navigation ────────────────────────────────────────────────────────────
@@ -483,7 +494,13 @@ impl PyPage {
             .block_on(async move { page.evaluate(expr).await })
             .map_err(to_py_err)?;
         // FIX: added serde_json to Cargo.toml (see note below).
-        Ok(serde_json::to_string(js_val.value().as_ref().map_or(&serde_json::Value::Null, |v| v)).unwrap_or_default())
+        Ok(serde_json::to_string(
+            js_val
+                .value()
+                .as_ref()
+                .map_or(&serde_json::Value::Null, |v| v),
+        )
+        .unwrap_or_default())
     }
 
     // ── Script injection ──────────────────────────────────────────────────────
@@ -651,11 +668,13 @@ impl PyPage {
 /// Methods that return "self" can be chained::
 ///
 ///     page.find_element("input").click().type_str("hello").press_key("Enter")
+#[gen_stub_pyclass]
 #[pyclass(name = "Element")]
 pub struct PyElement {
     inner: Arc<chromiumoxide::Element>,
 }
 
+#[gen_stub_pymethods]
 #[pymethods]
 impl PyElement {
     /// Click the element.  Returns self.
@@ -801,3 +820,5 @@ fn chromiumoxide_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyAddScriptParams>()?;
     Ok(())
 }
+
+define_stub_info_gatherer!(stub_info);

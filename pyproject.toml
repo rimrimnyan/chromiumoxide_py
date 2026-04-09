@@ -1,19 +1,20 @@
-[build-system]
-requires = ["maturin>=1.5,<2.0"]
-build-backend = "maturin"
-
 [project]
-name = "chromiumoxide-bindings"
-requires-python = ">=3.8"
-classifiers = [
-    "Programming Language :: Rust",
-    "Programming Language :: Python :: Implementation :: CPython",
-    "Programming Language :: Python :: Implementation :: PyPy",
-]
-dynamic = ["version"]
+    name            = "chromiumoxide_py"
+    requires-python = ">=3.8"
+    classifiers     = [
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: PyPy",
+        "Programming Language :: Rust",
+    ]
+    dynamic         = ["version"]
+
+[build-system]
+    requires      = ["maturin>=1.5,<2.0"]
+    build-backend = "maturin"
 
 [tool.maturin]
-# The Rust crate name must match [lib] name in Cargo.toml
-module-name = "chromiumoxide_py"
-# Build in release mode (recommended for distribution)
-profile = "release"
+    features    = ["pyo3/extension-module"]
+    # The Rust crate name must match [lib] name in Cargo.toml
+    module-name = "chromiumoxide_py"
+    # Build in release mode (recommended for distribution)
+    profile     = "release"
