@@ -37,18 +37,8 @@ fn to_py_err<E: std::fmt::Display>(e: E) -> PyErr {
     PyRuntimeError::new_err(e.to_string())
 }
 
-// ─── BrowserConfigBuilder ────────────────────────────────────────────────────
-
-/// Fluent builder for `BrowserConfig`.
-///
-/// Example::
-///
-///     builder = BrowserConfigBuilder()
-///     builder.chrome_executable("/usr/bin/chromium")
-///     builder.no_sandbox()
-///     cfg = builder.build()
-#[gen_stub_pyclass]
-#[pyclass(name = "BrowserConfigBuilder")]
+#[gen_stub_pyclass(module = "chromiumoxide_py.bindings")]
+#[pyclass(name = "_BrowserConfigBuilder")]
 pub struct PyBrowserConfigBuilder {
     executable: Option<String>,
     headless: bool,
@@ -59,7 +49,7 @@ pub struct PyBrowserConfigBuilder {
     user_data_dir: Option<String>,
 }
 
-#[gen_stub_pymethods]
+#[gen_stub_pymethods(module = "chromiumoxide_py.bindings")]
 #[pymethods]
 impl PyBrowserConfigBuilder {
     #[new]
@@ -133,55 +123,34 @@ impl PyBrowserConfigBuilder {
             b = b.user_data_dir(dir);
         }
 
-        let config = b.build().map_err(|e| PyValueError::new_err(e))?;
-        Ok(PyBrowserConfig {
-            inner: Some(config),
-        })
+        let config = b.build().map_err(PyValueError::new_err)?;
+        Ok(PyBrowserConfig { inner: config })
     }
 }
 
-// ─── BrowserConfig ───────────────────────────────────────────────────────────
-
-/// A finalised browser launch configuration.
-///
-/// Create via ``BrowserConfig.builder()`` (class-method shorthand) or
-/// directly via ``BrowserConfigBuilder``::
-///
-///     cfg = BrowserConfig.builder().build()   # minimal
-///
-/// Each `BrowserConfig` may only be used **once** – it is consumed by
-/// ``Browser.launch``.
-#[gen_stub_pyclass]
-#[pyclass(name = "BrowserConfig")]
+#[gen_stub_pyclass(module = "chromiumoxide_py.bindings")]
+#[pyclass(name = "_BrowserConfig")]
+#[derive(Clone)]
 pub struct PyBrowserConfig {
-    /// Stored as `Option` so `Browser::launch` can take ownership.
-    inner: Option<chromiumoxide::browser::BrowserConfig>,
+    inner: chromiumoxide::browser::BrowserConfig,
 }
 
-#[gen_stub_pymethods]
+#[gen_stub_pymethods(module = "chromiumoxide_py.bindings")]
 #[pymethods]
 impl PyBrowserConfig {
-    /// Convenience shorthand: ``BrowserConfig.builder()`` returns a
-    /// `BrowserConfigBuilder`.
     #[staticmethod]
     fn builder() -> PyBrowserConfigBuilder {
         PyBrowserConfigBuilder::new()
     }
+
+    #[staticmethod]
+    fn default() -> PyBrowserConfig {
+        PyBrowserConfigBuilder::new().build().unwrap()
+    }
 }
 
-// ─── Browser ─────────────────────────────────────────────────────────────────
-
-/// A running Chrome/Chromium browser instance.
-///
-/// Example::
-///
-///     cfg  = BrowserConfig.builder().chrome_executable("/usr/bin/chromium").build()
-///     b    = Browser.launch(cfg)
-///     page = b.new_page("https://example.com")
-///     print(page.wait_for_navigation().content())
-///     b.close()
-#[gen_stub_pyclass]
-#[pyclass(name = "Browser")]
+#[gen_stub_pyclass(module = "chromiumoxide_py.bindings")]
+#[pyclass(name = "_Browser")]
 pub struct PyBrowser {
     inner: Arc<tokio::sync::Mutex<chromiumoxide::Browser>>,
     /// Keeps the background WebSocket handler task alive for the browser
@@ -189,27 +158,12 @@ pub struct PyBrowser {
     _handler: Arc<tokio::task::JoinHandle<()>>,
 }
 
-#[gen_stub_pymethods]
+#[gen_stub_pymethods(module = "chromiumoxide_py.bindings")]
 #[pymethods]
 impl PyBrowser {
-    /// Launch a new browser process.
-    ///
-    /// Args:
-    ///     config (BrowserConfig): Launch configuration.  It is consumed by
-    ///         this call; create a fresh config if you need to launch again.
-    ///
-    /// Returns:
-    ///     Browser
-    ///
-    /// Raises:
-    ///     RuntimeError: if the browser cannot start.
     #[staticmethod]
-    fn launch(config: &mut PyBrowserConfig) -> PyResult<Self> {
-        let owned = config.inner.take().ok_or_else(|| {
-            PyRuntimeError::new_err(
-                "BrowserConfig already consumed. Create a new config for each Browser.launch().",
-            )
-        })?;
+    fn launch(config: PyBrowserConfig) -> PyResult<Self> {
+        let owned = config.inner.to_owned();
 
         let rt = runtime();
         let (browser, mut handler) = rt
@@ -225,12 +179,6 @@ impl PyBrowser {
         })
     }
 
-    /// Open a new tab and navigate to `url`.
-    ///
-    /// Blocks until the initial load is complete.
-    ///
-    /// Returns:
-    ///     Page
     fn new_page(&self, url: &str) -> PyResult<PyPage> {
         let browser = self.inner.clone();
         let url = url.to_owned();
@@ -245,7 +193,6 @@ impl PyBrowser {
         })
     }
 
-    /// Close the browser and all open tabs.
     fn close(&self) -> PyResult<()> {
         let browser = self.inner.clone();
         runtime()
@@ -257,7 +204,6 @@ impl PyBrowser {
         Ok(())
     }
 
-    /// Return the DevTools WebSocket URL (e.g. ``ws://127.0.0.1:PORT``).
     fn websocket_address(&self) -> String {
         let browser = self.inner.clone();
         runtime().block_on(async move {
@@ -271,21 +217,8 @@ impl PyBrowser {
     }
 }
 
-// ─── AddScriptToEvaluateOnNewDocumentParams ───────────────────────────────────
-
-/// Parameters for ``Page.add_script_to_evaluate_on_new_document``.
-///
-/// Example::
-///
-///     params = AddScriptToEvaluateOnNewDocumentParams(
-///         source="Object.defineProperty(navigator, 'webdriver', {get: () => undefined})",
-///         run_immediately=True,
-///     )
-///     identifier = page.add_script_to_evaluate_on_new_document(params)
-// FIX: added `from_py_object` to silence the deprecation warning about the
-// automatic `FromPyObject` impl for `Clone`-able `#[pyclass]` types in pyo3 ≥ 0.22.
-#[gen_stub_pyclass]
-#[pyclass(name = "AddScriptToEvaluateOnNewDocumentParams", from_py_object)]
+#[gen_stub_pyclass(module = "chromiumoxide_py.bindings")]
+#[pyclass(name = "_AddScriptToEvaluateOnNewDocumentParams", from_py_object)]
 #[derive(Clone)]
 pub struct PyAddScriptParams {
     source: String,
@@ -294,7 +227,7 @@ pub struct PyAddScriptParams {
     run_immediately: Option<bool>,
 }
 
-#[gen_stub_pymethods]
+#[gen_stub_pymethods(module = "chromiumoxide_py.bindings")]
 #[pymethods]
 impl PyAddScriptParams {
     #[new]
@@ -350,98 +283,15 @@ impl PyAddScriptParams {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-/// A single browser tab / page.
-///
-/// Obtain via ``Browser.new_page``::
-///
-///     page = browser.new_page("https://example.com")
-///
-/// Methods that logically return "the same page" (navigation, reload, …)
-/// return a new Python `Page` object backed by the same underlying tab so
-/// calls can be chained::
-///
-///     html = page.wait_for_navigation().content()
-#[gen_stub_pyclass]
-#[pyclass(name = "Page")]
+#[gen_stub_pyclass(module = "chromiumoxide_py.bindings")]
+#[pyclass(name = "_Page")]
 pub struct PyPage {
     inner: Arc<chromiumoxide::Page>,
 }
 
-#[gen_stub_pymethods]
+#[gen_stub_pymethods(module = "chromiumoxide_py.bindings")]
 #[pymethods]
 impl PyPage {
-    // ── Navigation ────────────────────────────────────────────────────────────
-
-    /// Navigate to `url`.  Blocks until the page finishes loading.
-    ///
-    /// Returns self (for chaining).
-    fn goto(&self, url: &str) -> PyResult<Py<PyPage>> {
-        let page = self.inner.clone();
-        let url = url.to_owned();
-        runtime()
-            .block_on(async move {
-                page.goto(url).await?;
-                Ok(())
-            })
-            .map_err(to_py_err::<Box<dyn std::error::Error + Send + Sync>>)?;
-        // FIX: Python::with_gil was removed in pyo3 0.22. Use pyo3::Python::attach instead.
-        pyo3::Python::attach(|py| {
-            Py::new(
-                py,
-                PyPage {
-                    inner: self.inner.clone(),
-                },
-            )
-        })
-    }
-
-    /// Block until the next navigation event completes.
-    ///
-    /// Returns self so you can chain `.content()`::
-    ///
-    ///     html = page.wait_for_navigation().content()
-    fn wait_for_navigation(&self) -> PyResult<Py<PyPage>> {
-        let page = self.inner.clone();
-        runtime()
-            .block_on(async move {
-                page.wait_for_navigation().await?;
-                Ok(())
-            })
-            .map_err(to_py_err::<Box<dyn std::error::Error + Send + Sync>>)?;
-        pyo3::Python::attach(|py| {
-            Py::new(
-                py,
-                PyPage {
-                    inner: self.inner.clone(),
-                },
-            )
-        })
-    }
-
-    /// Reload the current page and wait for navigation.
-    ///
-    /// Returns self.
-    fn reload(&self) -> PyResult<Py<PyPage>> {
-        let page = self.inner.clone();
-        runtime()
-            .block_on(async move {
-                page.reload().await?;
-                Ok(())
-            })
-            .map_err(to_py_err::<Box<dyn std::error::Error + Send + Sync>>)?;
-        pyo3::Python::attach(|py| {
-            Py::new(
-                py,
-                PyPage {
-                    inner: self.inner.clone(),
-                },
-            )
-        })
-    }
-
-    // ── Content ───────────────────────────────────────────────────────────────
-
-    /// Return the full outer HTML of the current document.
     fn content(&self) -> PyResult<String> {
         let page = self.inner.clone();
         runtime()
@@ -449,7 +299,6 @@ impl PyPage {
             .map_err(to_py_err)
     }
 
-    /// Replace the entire page content with the given HTML string.
     fn set_content(&self, html: &str) -> PyResult<()> {
         let page = self.inner.clone();
         let html = html.to_owned();
@@ -460,7 +309,6 @@ impl PyPage {
             .map_err(to_py_err)
     }
 
-    /// Return the document ``<title>`` or ``None``.
     fn title(&self) -> PyResult<Option<String>> {
         let page = self.inner.clone();
         runtime()
@@ -468,7 +316,6 @@ impl PyPage {
             .map_err(to_py_err)
     }
 
-    /// Return the current URL or ``None``.
     fn url(&self) -> PyResult<Option<String>> {
         let page = self.inner.clone();
         runtime()
@@ -476,17 +323,6 @@ impl PyPage {
             .map_err(to_py_err)
     }
 
-    // ── JavaScript ────────────────────────────────────────────────────────────
-
-    /// Evaluate a JavaScript expression or arrow-function body.
-    ///
-    /// Returns the result as a JSON-encoded string.
-    ///
-    /// Example::
-    ///
-    ///     page.evaluate("1 + 2")            # "3"
-    ///     page.evaluate("() => 'hello'")    # '"hello"'
-    ///     page.evaluate("document.title")   # '"My Page"'
     fn evaluate(&self, expression: &str) -> PyResult<String> {
         let page = self.inner.clone();
         let expr = expression.to_owned();
@@ -503,20 +339,6 @@ impl PyPage {
         .unwrap_or_default())
     }
 
-    // ── Script injection ──────────────────────────────────────────────────────
-
-    /// Register a script to be evaluated on every new document (navigation).
-    ///
-    /// Returns the script identifier (`str`) which can be passed to
-    /// ``remove_script_to_evaluate_on_new_document`` to unregister it.
-    ///
-    /// Example::
-    ///
-    ///     params = AddScriptToEvaluateOnNewDocumentParams(
-    ///         source="window.__injected = true",
-    ///         run_immediately=True,
-    ///     )
-    ///     script_id = page.add_script_to_evaluate_on_new_document(params)
     fn add_script_to_evaluate_on_new_document(
         &self,
         params: &PyAddScriptParams,
@@ -530,7 +352,6 @@ impl PyPage {
         Ok(ret.identifier.clone().into())
     }
 
-    /// Unregister a previously-injected new-document script by its identifier.
     fn remove_script_to_evaluate_on_new_document(&self, identifier: &str) -> PyResult<()> {
         use chromiumoxide_cdp::cdp::browser_protocol::page::{
             RemoveScriptToEvaluateOnNewDocumentParams, ScriptIdentifier,
@@ -547,9 +368,6 @@ impl PyPage {
         Ok(())
     }
 
-    /// Apply chromiumoxide's built-in bot-detection evasions.
-    ///
-    /// Call before navigating for best results.
     fn enable_stealth_mode(&self) -> PyResult<()> {
         let page = self.inner.clone();
         runtime()
@@ -557,12 +375,6 @@ impl PyPage {
             .map_err(to_py_err)
     }
 
-    // ── Screenshots / PDF ─────────────────────────────────────────────────────
-
-    /// Capture a PNG screenshot of the full page.
-    ///
-    /// Returns:
-    ///     bytes: raw PNG data.
     fn screenshot(&self) -> PyResult<Vec<u8>> {
         use chromiumoxide_cdp::cdp::browser_protocol::page::{
             CaptureScreenshotFormat, CaptureScreenshotParams,
@@ -660,21 +472,13 @@ impl PyPage {
     }
 }
 
-// ─── Element ─────────────────────────────────────────────────────────────────
-
-/// A DOM element.
-///
-/// Obtain via ``Page.find_element`` or ``Page.find_elements``.
-/// Methods that return "self" can be chained::
-///
-///     page.find_element("input").click().type_str("hello").press_key("Enter")
-#[gen_stub_pyclass]
-#[pyclass(name = "Element")]
+#[gen_stub_pyclass(module = "chromiumoxide_py.bindings")]
+#[pyclass(name = "_Element")]
 pub struct PyElement {
     inner: Arc<chromiumoxide::Element>,
 }
 
-#[gen_stub_pymethods]
+#[gen_stub_pymethods(module = "chromiumoxide_py.bindings")]
 #[pymethods]
 impl PyElement {
     /// Click the element.  Returns self.
@@ -798,26 +602,15 @@ impl PyElement {
     }
 }
 
-// ─── Module ───────────────────────────────────────────────────────────────────
-
-/// Python module ``chromiumoxide_py``.
-///
-/// Exported classes:
-///
-/// - ``BrowserConfigBuilder``  – step-by-step config construction
-/// - ``BrowserConfig``         – finalised config (also has ``BrowserConfig.builder()``)
-/// - ``Browser``               – launch/close browser, open pages
-/// - ``Page``                  – navigate, scrape, inject scripts, screenshot
-/// - ``Element``               – click, type, read DOM
-/// - ``AddScriptToEvaluateOnNewDocumentParams`` – script injection params
 #[pymodule]
-fn chromiumoxide_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn bindings(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyBrowserConfigBuilder>()?;
     m.add_class::<PyBrowserConfig>()?;
     m.add_class::<PyBrowser>()?;
     m.add_class::<PyPage>()?;
     m.add_class::<PyElement>()?;
     m.add_class::<PyAddScriptParams>()?;
+
     Ok(())
 }
 
