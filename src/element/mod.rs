@@ -7,13 +7,13 @@ use pyo3_stub_gen::derive::*;
 
 use chromiumoxide::Element;
 
-#[gen_stub_pyclass(module = "chromiumoxide_py.bindings")]
-#[pyclass]
+#[gen_stub_pyclass(module = "chromiumoxide_py.bindings.element")]
+#[pyclass(name = "Element")]
 pub struct PyElement {
     pub inner: Element,
 }
 
-#[gen_stub_pymethods(module = "chromiumoxide_py.bindings")]
+#[gen_stub_pymethods(module = "chromiumoxide_py.bindings.element")]
 #[pymethods]
 impl PyElement {
     #[getter]
@@ -90,4 +90,15 @@ impl PyElement {
         call_fut(self.inner.scroll_into_view()).map_err(to_py_err)?;
         Ok(())
     }
+}
+
+pub fn mod_element(parent: &Bound<PyModule>) -> PyResult<()> {
+    let py = parent.py();
+    let sub = PyModule::new(py, "element")?;
+
+    sub.add_class::<PyElement>()?;
+
+    parent.add_submodule(&sub)?;
+
+    Ok(())
 }

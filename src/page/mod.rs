@@ -177,6 +177,17 @@ impl PyPage {
     }
 }
 
+pub fn mod_page(parent: &Bound<PyModule>) -> PyResult<()> {
+    let py = parent.py();
+    let sub = PyModule::new(py, "page")?;
+
+    sub.add_class::<PyPage>()?;
+
+    parent.add_submodule(&sub)?;
+
+    Ok(())
+}
+
 // evasion scripts
 static EVASIONS: [&str; 13] = [
     include_str!("evasions/chrome_app.js"),
