@@ -1,8 +1,9 @@
 mod browser;
-// mod cdp;
-// mod handler;
+mod element;
 mod helper;
 mod page;
+// mod cdp;
+// mod handler;
 
 use crate::browser::mod_browser;
 use crate::page::PyPage;

@@ -58,6 +58,24 @@ impl PyBrowser {
         })
     }
 
+    #[getter]
+    fn websocket_address(&self) -> PyResult<String> {
+        let b = call_fut(self.inner.lock());
+        Ok(b.websocket_address().clone())
+    }
+
+    #[getter]
+    fn pages(&self) -> PyResult<Vec<PyPage>> {
+        let b = call_fut(self.inner.lock());
+        let pages = call_fut(b.pages())
+            .map_err(to_py_err)?
+            .into_iter()
+            .map(|inner| PyPage { inner })
+            .collect();
+
+        Ok(pages)
+    }
+
     fn new_page(&self, url: &str) -> PyResult<PyPage> {
         let b = call_fut(self.inner.lock());
         let page = call_fut(b.new_page(url)).map_err(to_py_err)?;
@@ -68,11 +86,6 @@ impl PyBrowser {
         let mut b = call_fut(self.inner.lock());
         call_fut(b.close()).map_err(to_py_err).unwrap();
         Ok(())
-    }
-
-    fn websocket_address(&self) -> PyResult<String> {
-        let b = call_fut(self.inner.lock());
-        Ok(b.websocket_address().clone())
     }
 
     fn __repr__(&self) -> String {

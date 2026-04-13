@@ -1,4 +1,4 @@
-use pyo3::exceptions::{PyRuntimeError, PyTypeError};
+use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
 
 use once_cell::sync::OnceCell;
@@ -20,26 +20,6 @@ where
     Fut: Future<Output = T>,
 {
     runtime().block_on(fut)
-}
-
-pub enum StrOrBool {
-    Str(String),
-    Bool(bool),
-}
-
-impl<'a, 'py> FromPyObject<'a, 'py> for StrOrBool {
-    type Error = PyErr;
-
-    fn extract(ob: Borrowed<'a, 'py, PyAny>) -> Result<Self, Self::Error> {
-        if let Ok(b) = ob.extract::<bool>() {
-            return Ok(StrOrBool::Bool(b));
-        }
-        if let Ok(s) = ob.extract::<String>() {
-            return Ok(StrOrBool::Str(s));
-        }
-
-        Err(PyTypeError::new_err("expected str or bool"))
-    }
 }
 
 pub fn to_py_err<E: std::fmt::Display>(e: E) -> PyErr {
