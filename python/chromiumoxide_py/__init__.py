@@ -1,7 +1,9 @@
-from chromiumoxide_py.bindings import _Browser as Browser
+import chromiumoxide_py
 from chromiumoxide_py.browser import BrowserConfig
+
+from . import bindings
 
 __all__ = [
     "BrowserConfig",
-    "Browser",
+    "bindings",
 ]

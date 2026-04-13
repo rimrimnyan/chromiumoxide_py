@@ -1,36 +1,100 @@
 from dataclasses import dataclass, field
+from enum import IntEnum
 from typing import Any
 
-from chromiumoxide_py.bindings import _Browser, _BrowserConfig
+from chromiumoxide_py import bindings
+
+Browser = bindings.browser.Browser
+
+
+class HeadlessMode(IntEnum):
+    FALSE = 0
+    TRUE = 1
+    NEW = 2
 
 
 @dataclass
 class BrowserConfig:
+    """Configuration for the browser."""
+
+    headless_mode: HeadlessMode | bool = field(default=HeadlessMode.TRUE)
+    """
+    Determines whether to run headless version of the browser.
+    Defaults to true.
+    """
+
+    sandbox: bool = field(default=True)
+    """Determines whether to run the browser with a sandbox."""
+
+    window_size: tuple[int, int] | None = field(default=None)
+    """Launch the browser with a specific window width and height."""
+
+    port: int = field(default=0)
+    """Launch the browser with a specific debugging port."""
+
     chrome_executable: str | None = field(default=None)
-    headless: bool = field(default=False)
-    sandbox: bool = field(default=False)
-    args: str | None = field(default=None)
-    window_width: int | None = field(default=None)
-    window_height: int | None = field(default=None)
+    """Path for Chrome or Chromium.
+
+    If unspecified, the create will try to automatically detect a suitable
+    binary."""
+
+    extensions: list[str] = field(default_factory=list)
+    """A list of Chrome extensions to load.
+
+    An extension should be a path to a folder containing the extension code.
+    CRX files cannot be used directly and must be first extracted.
+
+    Note that Chrome does not support loading extensions in headless-mode.
+    See https://bugs.chromium.org/p/chromium/issues/detail?id=706008#c5"""
+
+    process_envs: dict[str, str] | None = field(default=None)
+    """Environment variables to set for the Chromium process.
+    Passes value through to std::process::Command::envs."""
+
     user_data_dir: str | None = field(default=None)
+    """Data dir for user data"""
 
-    def launch(self) -> _Browser:
+    incognito: bool = field(default=False)
+    """Whether to launch the `Browser` in incognito mode"""
 
-        builder = _BrowserConfig.builder()
+    launch_timeout: float = field(default=20_000)
+    """Timeout duration for `Browser::launch` (in milliseconds)"""
 
-        if self.chrome_executable:
-            builder.chrome_executable(self.chrome_executable)
-        if not self.headless:
-            builder.with_head()
-        if not self.sandbox:
-            builder.no_sandbox()
-        if self.args:
-            builder.arg(self.args)
-        if self.window_width and self.window_height:
-            builder.window_size(self.window_width, self.window_height)
-        if self.user_data_dir:
-            builder.user_data_dir(self.user_data_dir)
+    ignore_https_errors: bool = field(default=True)
+    """Ignore https errors, default is true"""
 
-        config = builder.build()
+    ignore_invalid_messages: bool = field(default=True)
+    """Ignore invalid messages, default is true"""
 
-        return _Browser.launch(config)
+    disable_https_first: bool = field(default=False)
+    """Disable HTTPS-first features (HttpsUpgrades, HttpsFirstBalancedModeAutoEnable)"""
+
+    # viewport: Any | None = field(default=None)
+    """The viewport of the browser"""
+
+    request_timeout: float = field(default=20_000)
+    """The duration after a request with no response should time out (in milliseconds)"""
+
+    args: list[str] = field(default_factory=list)
+    """Additional command line arguments to pass to the browser instance."""
+
+    disable_default_args: bool = field(default=False)
+    """Whether to disable DEFAULT_ARGS or not, default is false"""
+
+    request_intercept: bool = field(default=False)
+    """Whether to enable request interception"""
+
+    cache_enabled: bool = field(default=True)
+    """Whether to enable cache"""
+
+    hidden: bool = field(default=True)
+    """Avoid easy bot detection by setting `navigator.webdriver` to false"""
+
+    def __post_init__(self):
+        if isinstance(self.headless_mode, bool):
+            self.headless_mode = (
+                HeadlessMode.TRUE if self.headless_mode else HeadlessMode.FALSE
+            )
+
+    def launch(self) -> Browser:
+        return Browser.launch(self)  # type: ignore

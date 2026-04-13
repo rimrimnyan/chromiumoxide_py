@@ -8,7 +8,7 @@
     build-backend = "maturin"
 
 [tool.maturin]
-    # features      = ["pyo3/extension-module"]
+    features      = ["pyo3/extension-module"]
     # The Rust crate name must match [lib] name in Cargo.toml
     module-name   = "chromiumoxide_py.bindings"
     # Build in release mode (recommended for distribution)
