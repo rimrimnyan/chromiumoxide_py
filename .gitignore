@@ -72,5 +72,3 @@ docs/_build/
 .python-version
 
 Cargo.lock
-
-**.pyi
