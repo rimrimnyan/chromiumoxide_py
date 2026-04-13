@@ -1,23 +1,11 @@
-use crate::helper::getattr;
 use crate::helper::{call_fut, to_py_err};
 
 use std::collections::HashMap;
-use std::time::Duration;
-use tokio::time::sleep;
 
-use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 
 use chromiumoxide::Element;
-use chromiumoxide::Page;
-use chromiumoxide::cdp::browser_protocol::page::{
-    AddScriptToEvaluateOnNewDocumentParams, NavigateParams,
-};
-use chromiumoxide::error::CdpError;
-use chromiumoxide::layout::Point;
-
-use chromiumoxide::layout::BoundingBox;
 
 #[gen_stub_pyclass(module = "chromiumoxide_py.bindings")]
 #[pyclass]
