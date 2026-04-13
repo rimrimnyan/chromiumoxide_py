@@ -16,14 +16,14 @@ use chromiumoxide::cdp::browser_protocol::page::{
 use chromiumoxide::error::CdpError;
 use chromiumoxide::layout::Point;
 
-#[gen_stub_pyclass(module = "chromiumoxide_py.bindings")]
+#[gen_stub_pyclass(module = "chromiumoxide_py.bindings.page")]
 #[pyclass(name = "Page")]
 #[derive(Debug, Clone)]
 pub struct PyPage {
     pub inner: Page,
 }
 
-#[gen_stub_pymethods(module = "chromiumoxide_py.bindings")]
+#[gen_stub_pymethods(module = "chromiumoxide_py.bindings.page")]
 #[pymethods]
 impl PyPage {
     #[getter]
