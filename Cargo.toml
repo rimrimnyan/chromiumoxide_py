@@ -2,7 +2,7 @@
     name        = "chromiumoxide_py"
     version     = "0.1.1"
     edition     = "2024"
-    description = "Python bindings for chromiumoxide via PyO3"
+    description = "Python bindings for chromiumoxide"
 
 [lib]
     crate-type = ["cdylib", "rlib"]
