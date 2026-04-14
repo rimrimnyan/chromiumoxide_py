@@ -10,6 +10,7 @@
 [[bin]]
     doc  = false
     name = "stub_gen"
+    path = "src/bin/stub_gen.rs"
 
 [dependencies]
     chromiumoxide     = { version = "0.9.1", features = [] }
