@@ -124,9 +124,7 @@ impl PyPage {
     fn scroll_to_bottom(&self) -> PyResult<()> {
         let mut previous_height = 0;
 
-        println!("loop start");
         loop {
-            println!("get height");
             // Get current scroll height
             let height: i64 = call_fut(self.inner.evaluate("document.body.scrollHeight"))
                 .map_err(to_py_err)?
@@ -142,7 +140,6 @@ impl PyPage {
 
             // Scroll to bottom
 
-            println!("scroll to bottom via js script");
             call_fut(
                 self.inner
                     .evaluate("window.scrollTo(0, document.body.scrollHeight);"),
@@ -151,9 +148,6 @@ impl PyPage {
 
             // Wait for new content to load
             println!("Scrolling... (height={})", height);
-
-            println!("sleep for 2s");
-            sleep(Duration::from_secs(2));
         }
 
         Ok(())
