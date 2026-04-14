@@ -2,8 +2,8 @@ use crate::element::PyElement;
 use crate::helper::getattr;
 use crate::helper::{call_fut, to_py_err};
 
+use std::thread::sleep;
 use std::time::Duration;
-use tokio::time::sleep;
 
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
@@ -147,7 +147,7 @@ impl PyPage {
 
             // Wait for new content to load
             println!("Scrolling... (height={})", height);
-            call_fut(sleep(Duration::from_secs(2)));
+            sleep(Duration::from_secs(2));
         }
 
         Ok(())
