@@ -81,6 +81,13 @@ impl PyElement {
         Ok(slf)
     }
 
+    fn call_js_fn(&self, function_declaration: String, await_promise: bool) -> PyResult<String> {
+        let cfor = call_fut(self.inner.call_js_fn(function_declaration, await_promise))
+            .map_err(to_py_err)?;
+
+        Ok(cfor.result.value.unwrap().to_string())
+    }
+
     fn focus(&self) -> PyResult<()> {
         call_fut(self.inner.focus()).map_err(to_py_err)?;
         Ok(())
