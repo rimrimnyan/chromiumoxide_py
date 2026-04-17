@@ -71,6 +71,11 @@ impl PyElement {
         Ok(slf)
     }
 
+    fn hover(slf: PyRefMut<Self>) -> PyResult<PyRefMut<Self>> {
+        call_fut(slf.inner.hover()).map_err(to_py_err)?;
+        Ok(slf)
+    }
+
     fn type_str(slf: PyRefMut<Self>, input: String) -> PyResult<PyRefMut<Self>> {
         call_fut(slf.inner.type_str(input)).map_err(to_py_err)?;
         Ok(slf)
