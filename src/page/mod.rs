@@ -2,19 +2,18 @@ use crate::element::PyElement;
 use crate::helper::getattr;
 use crate::helper::{call_fut, to_py_err};
 
-use std::thread::sleep;
-use std::time::Duration;
-
+use chromiumoxide::cdp::browser_protocol::network::SetCacheDisabledParams;
+use chromiumoxide_types::CommandResponse;
 use pyo3::exceptions::PyTypeError;
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 
-use chromiumoxide::Page;
 use chromiumoxide::cdp::browser_protocol::page::{
     AddScriptToEvaluateOnNewDocumentParams, NavigateParams,
 };
 use chromiumoxide::error::CdpError;
 use chromiumoxide::layout::Point;
+use chromiumoxide::{Command, Page};
 
 #[gen_stub_pyclass(module = "chromiumoxide_py.bindings.page")]
 #[pyclass(name = "Page")]
@@ -69,17 +68,22 @@ impl PyPage {
 
         let obj = &command.as_borrowed();
 
-        let res = match name {
-            "AddScriptToEvaluateOnNewDocument" => AddScriptToEvaluateOnNewDocumentParams {
-                source: getattr(obj, "source")?,
-                world_name: getattr(obj, "world_name")?,
-                include_command_line_api: getattr(obj, "include_command_line_api")?,
-                run_immediately: getattr(obj, "run_immediately")?,
-            },
+        match name {
+            "AddScriptToEvaluateOnNewDocument" => {
+                self.exe(AddScriptToEvaluateOnNewDocumentParams {
+                    source: getattr(obj, "source")?,
+                    world_name: getattr(obj, "world_name")?,
+                    include_command_line_api: getattr(obj, "include_command_line_api")?,
+                    run_immediately: getattr(obj, "run_immediately")?,
+                })?;
+            }
+            "SetCacheDisabled" => {
+                self.exe(SetCacheDisabledParams {
+                    cache_disabled: getattr(obj, "cache_disabled")?,
+                })?;
+            }
             _ => return Err(PyTypeError::new_err("Invalid command!")),
         };
-
-        call_fut(self.inner.execute(res)).map_err(to_py_err)?;
 
         Ok(())
     }
@@ -157,6 +161,10 @@ impl PyPage {
 }
 
 impl PyPage {
+    fn exe<T: Command>(&self, cmd: T) -> PyResult<CommandResponse<T::Response>> {
+        call_fut(self.inner.execute(cmd)).map_err(to_py_err)
+    }
+
     // some evasion scripts
     fn apply_script<T: Into<String>>(&self, source: T) -> Result<(), CdpError> {
         let script = AddScriptToEvaluateOnNewDocumentParams {
