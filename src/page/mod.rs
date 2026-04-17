@@ -84,11 +84,13 @@ impl PyPage {
         Ok(())
     }
 
-    fn evaluate(&self, source: String) -> PyResult<String> {
-        Ok(call_fut(self.inner.evaluate(source))
+    fn evaluate(&self, source: String) -> PyResult<Option<String>> {
+        let val: Option<String> = call_fut(self.inner.evaluate(source))
             .map_err(to_py_err)?
             .into_value()
-            .unwrap())
+            .map_err(to_py_err)?;
+
+        Ok(val)
     }
 
     fn find_first_element(&self, selector: String) -> PyResult<PyElement> {
