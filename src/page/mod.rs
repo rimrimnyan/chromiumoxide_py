@@ -5,6 +5,7 @@ use crate::helper::{call_fut, to_py_err};
 use chromiumoxide::cdp::browser_protocol::network::SetCacheDisabledParams;
 use chromiumoxide_types::CommandResponse;
 use pyo3::exceptions::PyTypeError;
+use pyo3::ffi::PyObject;
 use pyo3::prelude::*;
 use pyo3_stub_gen::derive::*;
 
@@ -14,6 +15,8 @@ use chromiumoxide::cdp::browser_protocol::page::{
 use chromiumoxide::error::CdpError;
 use chromiumoxide::layout::Point;
 use chromiumoxide::{Command, Page};
+use pythonize::pythonize;
+use serde_json::json;
 
 #[gen_stub_pyclass(module = "chromiumoxide_py.bindings.page")]
 #[pyclass(name = "Page")]
@@ -88,11 +91,15 @@ impl PyPage {
         Ok(())
     }
 
-    fn evaluate(&self, source: String) -> PyResult<Option<String>> {
+    fn evaluate<'py>(
+        &self,
+        py: Python<'py>,
+        source: String,
+    ) -> PyResult<Option<Bound<'py, PyAny>>> {
         let res = call_fut(self.inner.evaluate(source)).map_err(to_py_err)?;
 
         match res.value() {
-            Some(val) => Ok(Some(val.to_string())),
+            Some(val) => Ok(Some(pythonize(py, val)?)),
             None => Ok(None),
         }
     }
