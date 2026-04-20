@@ -91,16 +91,12 @@ impl PyPage {
         Ok(())
     }
 
-    fn evaluate<'py>(
-        &self,
-        py: Python<'py>,
-        source: String,
-    ) -> PyResult<Option<Bound<'py, PyAny>>> {
+    fn evaluate<'py>(&self, py: Python<'py>, source: String) -> PyResult<Bound<'py, PyAny>> {
         let res = call_fut(self.inner.evaluate(source)).map_err(to_py_err)?;
 
         match res.value() {
-            Some(val) => Ok(Some(pythonize(py, val)?)),
-            None => Ok(None),
+            Some(val) => Ok(pythonize(py, val)?),
+            None => Ok(py.None().into_bound(py)),
         }
     }
 
