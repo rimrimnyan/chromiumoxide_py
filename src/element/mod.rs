@@ -52,6 +52,11 @@ impl PyElement {
         Ok(attrs)
     }
 
+    #[getter]
+    fn tag_name(&self) -> PyResult<Option<String>> {
+        self.call_js_fn("function() { return this.tagName; }".to_string(), false)
+    }
+
     fn find_first_element(&self, selector: String) -> PyResult<Self> {
         Ok(PyElement {
             inner: call_fut(self.inner.find_element(selector)).map_err(to_py_err)?,
